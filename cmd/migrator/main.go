@@ -5,11 +5,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"go-music-lib/internal/config"
+	"log"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"log"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -19,50 +21,60 @@ func main() {
 	flag.Parse()
 
 	if migrationsPath == "" {
-		panic("migrations-path is required")
+		log.Fatal("migrations-path is required")
 	}
 
-	dbURL := "postgres://postgres:root@localhost:5432/grpc-auth?sslmode=disable"
+	cfg, err := config.MustLoad()
+	if err != nil {
+		panic("failed to load config: " + err.Error())
+	}
+
+	// Формирование строки подключения из конфигурации
+	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.DBUser,
+		cfg.DBPassword,
+		cfg.DBHost,
+		cfg.DBPort,
+		cfg.DBName,
+		cfg.DBSSLMode,
+	)
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		panic("unable to connect to postgres")
+		panic("Невозможно подключиться к PostgreSQL" + err.Error())
 	}
 
 	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			panic("unable to close postgres connection")
+		if err := db.Close(); err != nil {
+			log.Fatalf("Невозможно закрыть соединение с PostgreSQL: %v", err)
 		}
 	}(db)
 
 	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Не удалось проверить соединение с базой данных: %v", err)
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		panic("unable to configure database")
+		log.Fatalf("Невозможно настроить драйвер базы данных: %v", err)
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
 		fmt.Sprintf("file://%s", migrationsPath),
-		"grpc-auth",
+		cfg.DBName,
 		driver,
 	)
 	if err != nil {
-		panic("Unable to Initialize migrate")
+		panic("Невозможно инициализировать миграцию: %v" + err.Error())
 	}
 
 	if err := m.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			fmt.Println("No migrations to apply")
-
+			fmt.Println("Нет миграций для применения")
 			return
 		}
-
-		panic("Unable to Run migration")
+		log.Fatalf("Невозможно выполнить миграцию: %v", err)
 	}
 
-	fmt.Println("Migrations ran successfully!")
+	fmt.Println("Миграции успешно применены!")
 }
