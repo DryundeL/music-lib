@@ -29,7 +29,6 @@ func main() {
 		panic("failed to load config: " + err.Error())
 	}
 
-	// Формирование строки подключения из конфигурации
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.DBUser,
 		cfg.DBPassword,
