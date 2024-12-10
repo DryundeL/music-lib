@@ -1,8 +1,9 @@
 package main
 
 import (
-	"go-music-lib/internal/config"
 	"log/slog"
+	"music-lib/internal/config"
+	"music-lib/internal/storage/pgsql"
 	"os"
 )
 
@@ -20,7 +21,10 @@ func main() {
 	log := setupLogger(cfg.AppEnv)
 	log.Info("starting server", slog.Any("cfg", cfg))
 
-	// TODO: define postgres
+	// define postgres
+	storage := pgsql.New(cfg)
+	_ = storage
+
 	// TODO: define router
 	// TODO: run server
 	// TODO: Graceful shutdown

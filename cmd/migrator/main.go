@@ -5,8 +5,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"go-music-lib/internal/config"
 	"log"
+	"music-lib/internal/config"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -24,10 +24,7 @@ func main() {
 		log.Fatal("migrations-path is required")
 	}
 
-	cfg, err := config.MustLoad()
-	if err != nil {
-		panic("failed to load config: " + err.Error())
-	}
+	cfg := config.MustLoad()
 
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.DBUser,
