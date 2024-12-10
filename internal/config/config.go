@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -25,7 +24,7 @@ type Config struct {
 	ServerPort string
 }
 
-func MustLoad() (*Config, error) {
+func MustLoad() *Config {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Файл .env не найден, использую переменные окружения")
@@ -38,7 +37,7 @@ func MustLoad() (*Config, error) {
 	dbPortStr := getEnv("DB_PORT", "5432")
 	config.DBPort, err = strconv.Atoi(dbPortStr)
 	if err != nil {
-		return nil, fmt.Errorf("неверный формат DB_PORT: %v", err)
+		panic(err)
 	}
 
 	config.AppEnv = getEnv("APP_ENV", "dev")
@@ -54,10 +53,10 @@ func MustLoad() (*Config, error) {
 	config.ServerPort = getEnv("PORT", "8080")
 
 	if config.DBHost == "" || config.DBUser == "" || config.DBPassword == "" || config.DBName == "" {
-		return nil, fmt.Errorf("необходимые параметры базы данных отсутствуют")
+		panic("необходимые параметры базы данных отсутствуют")
 	}
 
-	return config, nil
+	return config
 }
 
 func getEnv(key, defaultVal string) string {

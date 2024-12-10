@@ -13,11 +13,10 @@ const (
 )
 
 func main() {
-	cfg, err := config.MustLoad()
-	if err != nil {
-		panic(err)
-	}
+	// define config
+	cfg := config.MustLoad()
 
+	// define logger
 	log := setupLogger(cfg.AppEnv)
 	log.Info("starting server", slog.Any("cfg", cfg))
 
