@@ -44,11 +44,9 @@ func MustLoad() *Config {
 	config.DBUser = getEnv("DB_USER", "")
 	config.DBPassword = getEnv("DB_PASSWORD", "")
 	config.DBName = getEnv("DB_NAME", "")
-	config.DBSSLMode = getEnv("DB_SSLMODE", "")
+	config.DBSSLMode = getEnv("DB_SSLMODE", "disable")
 
 	config.LogLevel = getEnv("LOG_LEVEL", "info")
-
-	config.ExternalAPIURL = getEnv("EXTERNAL_API_URL", "")
 
 	config.ServerPort = getEnv("PORT", "8080")
 
