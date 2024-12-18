@@ -1,44 +1,42 @@
 package logger
 
 import (
+	"github.com/go-chi/chi/v5/middleware"
 	"log/slog"
+	"net/http"
 	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
-func New(log *slog.Logger) gin.HandlerFunc {
-	log = log.With(
-		slog.String("component", "middleware/logger"),
-	)
-
-	log.Info("logger middleware enabled")
-
-	return func(c *gin.Context) {
-		entry := log.With(
-			slog.String("method", c.Request.Method),
-			slog.String("path", c.Request.URL.Path),
-			slog.String("remote_addr", c.Request.RemoteAddr),
-			slog.String("user_agent", c.Request.UserAgent()),
+func New(log *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		log = log.With(
+			slog.String("component", "middleware/logger"),
 		)
 
-		// Запоминаем время начала запроса
-		startTime := time.Now()
+		log.Info("logger middleware enabled")
 
-		// Обрабатываем запрос
-		c.Next()
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			entry := log.With(
+				slog.String("method", r.Method),
+				slog.String("path", r.URL.Path),
+				slog.String("remote_addr", r.RemoteAddr),
+				slog.String("user_agent", r.UserAgent()),
+				slog.String("request_id", middleware.GetReqID(r.Context())),
+			)
+			mw := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-		// Получаем статус ответа
-		status := c.Writer.Status()
-		bytesWritten := c.Writer.Size()
-		if bytesWritten < 0 {
-			bytesWritten = 0
+			t1 := time.Now()
+			defer func() {
+				entry.Info("request completed",
+					slog.Int("status", mw.Status()),
+					slog.Int("bytes_written", mw.BytesWritten()),
+					slog.String("duration", time.Since(t1).String()),
+				)
+			}()
+
+			next.ServeHTTP(mw, r)
 		}
 
-		entry.Info("request completed",
-			slog.Int("status", status),
-			slog.Int("bytes_written", bytesWritten),
-			slog.String("duration", time.Since(startTime).String()),
-		)
+		return http.HandlerFunc(fn)
 	}
 }

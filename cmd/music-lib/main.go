@@ -1,10 +1,17 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"music-lib/internal/config"
+	"music-lib/internal/http/router"
 	"music-lib/internal/storage/pgsql"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 const (
@@ -23,11 +30,35 @@ func main() {
 
 	// define postgres
 	storage := pgsql.New(cfg)
-	_ = storage
 
-	// TODO: define router
-	// TODO: run server
-	// TODO: Graceful shutdown
+	// define router
+	routes := router.New(storage, log)
+
+	// run server
+	server := http.Server{
+		Addr:    cfg.AppUrl + ":" + cfg.AppPort,
+		Handler: routes,
+	}
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Error("failed to start server", err)
+	}
+
+	log.Error("Server stopped")
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+	log.Info("shutting down server...", slog.Any("signal", sig))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Error("server forced to shutdown", slog.Any("error", err))
+	} else {
+		log.Info("server gracefully stopped")
+	}
 }
 
 func setupLogger(env string) *slog.Logger {

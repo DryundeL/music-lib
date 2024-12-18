@@ -10,18 +10,17 @@ import (
 
 type Config struct {
 	AppEnv     string
+	AppUrl     string
+	AppPort    string
 	DBHost     string
 	DBPort     int
 	DBUser     string
 	DBPassword string
 	DBName     string
-	DBSSLMode  string
+
+	DBSSLMode string
 
 	LogLevel string
-
-	ExternalAPIURL string
-
-	ServerPort string
 }
 
 func MustLoad() *Config {
@@ -40,15 +39,15 @@ func MustLoad() *Config {
 		panic(err)
 	}
 
-	config.AppEnv = getEnv("APP_ENV", "dev")
+	config.AppEnv = getEnv("APP_ENV", "local")
+	config.AppUrl = getEnv("APP_URL", "localhost")
+	config.AppPort = getEnv("APP_PORT", "8080")
 	config.DBUser = getEnv("DB_USER", "")
 	config.DBPassword = getEnv("DB_PASSWORD", "")
 	config.DBName = getEnv("DB_NAME", "")
 	config.DBSSLMode = getEnv("DB_SSLMODE", "disable")
 
 	config.LogLevel = getEnv("LOG_LEVEL", "info")
-
-	config.ServerPort = getEnv("PORT", "8080")
 
 	if config.DBHost == "" || config.DBUser == "" || config.DBPassword == "" || config.DBName == "" {
 		panic("необходимые параметры базы данных отсутствуют")
