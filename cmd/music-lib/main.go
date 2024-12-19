@@ -26,7 +26,7 @@ func main() {
 
 	// define logger
 	log := setupLogger(cfg.AppEnv)
-	log.Info("starting server", slog.Any("cfg", cfg))
+	log.Info("starting server", slog.Any("cfg", cfg.AppUrl))
 
 	// define postgres
 	storage := pgsql.New(cfg)
