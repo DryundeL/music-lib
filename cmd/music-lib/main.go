@@ -39,15 +39,21 @@ func main() {
 		Addr:    cfg.AppUrl + ":" + cfg.AppPort,
 		Handler: routes,
 	}
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Error("failed to start server", err)
-	}
-
-	log.Error("Server stopped")
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Запускаем сервер в горутине
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("failed to start server", slog.Any("error", err))
+		}
+	}()
+
+	log.Info("Server started", slog.String("addr", cfg.AppUrl+":"+cfg.AppPort))
+
+	// Ожидаем сигнал для graceful shutdown
 	sig := <-quit
 	log.Info("shutting down server...", slog.Any("signal", sig))
 

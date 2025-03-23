@@ -5,11 +5,12 @@ import (
 	"music-lib/internal/http/handlers/song"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"log/slog"
 	mvLog "music-lib/internal/http/middleware/logger"
 	"music-lib/internal/storage/pgsql"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // New создаёт новый Router с подключенными хэндлерами.
@@ -25,9 +26,10 @@ func New(storage *pgsql.Storage, logger *slog.Logger) http.Handler {
 	r.Use(mvLog.New(logger))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("OK"))
-		if err != nil {
-			panic(err)
+		w.Header().Set("Content-Type", "text/plain")
+		if _, err := w.Write([]byte("OK")); err != nil {
+			logger.Error("failed to write health check response", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	})
 
